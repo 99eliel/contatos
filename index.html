@@ -8,19 +8,22 @@
   <title>Contatos</title>
   <style>
     :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f4f7f8}
-    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#e8f7f4 0,#f4f7f8 180px);min-height:100vh}
-    .app{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#e8f7f4 0,#f4f7f8 180px);min-height:100vh}
+    button,input{font:inherit}.app{max-width:760px;margin:0 auto;padding:20px 16px 48px}
     .hero{background:#0f766e;color:#fff;border-radius:24px;padding:22px;box-shadow:0 14px 35px rgba(15,118,110,.18)}
-    .hero h1{margin:0 0 6px;font-size:1.8rem}.hero p{margin:0;opacity:.88}
-    .stats{margin-top:14px;font-size:.92rem;opacity:.92}
-    .search-wrap{position:sticky;top:0;z-index:5;padding:14px 0;background:linear-gradient(180deg,rgba(244,247,248,.98),rgba(244,247,248,.9),rgba(244,247,248,0))}
-    .search{width:100%;border:1px solid #d5e1e3;background:white;border-radius:16px;padding:15px 16px;font-size:1rem;outline:none;box-shadow:0 6px 20px rgba(15,23,42,.05)}
+    .hero h1{margin:0 0 6px;font-size:1.8rem}.hero p{margin:0;opacity:.9}.stats{margin-top:14px;font-size:.92rem;opacity:.95}
+    .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer}
+    .btn-light{background:#fff;color:#0f766e}.btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.22)}
+    .install{display:none}.search-wrap{position:sticky;top:0;z-index:5;padding:14px 0;background:linear-gradient(180deg,rgba(244,247,248,.98),rgba(244,247,248,.9),rgba(244,247,248,0))}
+    .search{width:100%;border:1px solid #d5e1e3;background:#fff;border-radius:16px;padding:15px 16px;font-size:1rem;outline:none;box-shadow:0 6px 20px rgba(15,23,42,.05)}
     .search:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.12)}
-    .list{display:grid;gap:10px}.card{background:#fff;border:1px solid #e4ebed;border-radius:18px;padding:15px;display:flex;align-items:center;gap:12px;box-shadow:0 5px 18px rgba(15,23,42,.04)}
+    .notice{background:#fff8dc;border:1px solid #f0df9e;color:#725b00;border-radius:14px;padding:12px 14px;margin:0 0 12px;line-height:1.4}
+    .notice[hidden]{display:none}.list{display:grid;gap:10px}.card{background:#fff;border:1px solid #e4ebed;border-radius:18px;padding:15px;display:flex;align-items:center;gap:12px;box-shadow:0 5px 18px rgba(15,23,42,.04)}
     .avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#dff5ef;color:#0f766e;font-weight:800;flex:0 0 auto}
     .info{min-width:0;flex:1}.name{font-weight:800;line-height:1.25}.phone{margin-top:4px;color:#64748b;font-size:.95rem}
-    .wa{width:46px;height:46px;border:0;border-radius:14px;background:#25D366;color:#fff;font-size:1.35rem;display:grid;place-items:center;text-decoration:none;flex:0 0 auto;box-shadow:0 6px 16px rgba(37,211,102,.22)}
-    .empty{text-align:center;color:#64748b;padding:36px 10px}.small{font-size:.82rem;color:#64748b;margin:12px 4px 0}.install{display:none;margin-top:12px;border:0;background:white;color:#0f766e;font-weight:800;border-radius:12px;padding:11px 14px}
+    .wa{width:48px;height:48px;border-radius:14px;background:#25D366;color:#fff;display:grid;place-items:center;text-decoration:none;flex:0 0 auto;box-shadow:0 6px 16px rgba(37,211,102,.22);font-size:1.35rem;font-weight:900}
+    .empty{text-align:center;color:#64748b;padding:36px 10px}.small{font-size:.82rem;color:#64748b;margin:12px 4px 0}.load{height:1px}
+    input[type=file]{display:none}
   </style>
 </head>
 <body>
@@ -28,52 +31,111 @@
     <section class="hero">
       <h1>Contatos</h1>
       <p>Pesquise pelo nome ou número e abra a conversa no WhatsApp.</p>
-      <div class="stats" id="stats">Carregando contatos...</div>
-      <button id="installBtn" class="install">Instalar aplicativo</button>
+      <div class="stats" id="stats">Carregando...</div>
+      <div class="actions">
+        <label class="btn btn-light" for="fileInput">Importar contatos</label>
+        <button id="clearBtn" class="btn btn-ghost" type="button">Apagar base local</button>
+        <button id="installBtn" class="btn btn-light install" type="button">Instalar aplicativo</button>
+      </div>
+      <input id="fileInput" type="file" accept="application/json,.json" />
     </section>
 
     <div class="search-wrap">
       <input id="search" class="search" type="search" placeholder="Buscar nome ou telefone..." autocomplete="off" />
     </div>
 
+    <div id="notice" class="notice" hidden></div>
     <section id="list" class="list"></section>
-    <p class="small">O botão abre o WhatsApp com o número selecionado. A mensagem não é enviada automaticamente.</p>
+    <div id="loadMore" class="load"></div>
+    <p class="small">Os contatos importados ficam salvos apenas neste aparelho. O botão abre o WhatsApp; a mensagem não é enviada automaticamente.</p>
   </main>
 
 <script>
+const DB_NAME='contatos-pwa';
+const DB_VERSION=1;
+const STORE='dados';
+const PAGE_SIZE=180;
 let contatos=[];
+let filtrados=[];
+let exibidos=0;
 const list=document.getElementById('list');
 const search=document.getElementById('search');
 const stats=document.getElementById('stats');
+const fileInput=document.getElementById('fileInput');
+const clearBtn=document.getElementById('clearBtn');
+const notice=document.getElementById('notice');
+const loadMore=document.getElementById('loadMore');
 const normalize=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const digits=s=>(s||'').replace(/\D/g,'');
-const formatPhone=n=>{ const d=digits(n); const local=d.startsWith('55')?d.slice(2):d; return local.length===11?`(${local.slice(0,2)}) ${local.slice(2,7)}-${local.slice(7)}`:n; };
-const waNumber=n=>{ const d=digits(n); return d.startsWith('55')?d:`55${d}`; };
-function initials(name){return name.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase() || '?'}
-function render(items){
-  stats.textContent=`${contatos.length.toLocaleString('pt-BR')} contatos cadastrados`;
-  if(!items.length){list.innerHTML='<div class="empty">Nenhum contato encontrado.</div>';return}
-  const frag=document.createDocumentFragment();
-  items.slice(0,300).forEach(c=>{
-    const card=document.createElement('article');card.className='card';
-    const av=document.createElement('div');av.className='avatar';av.textContent=initials(c.nome);
-    const info=document.createElement('div');info.className='info';
-    const name=document.createElement('div');name.className='name';name.textContent=c.nome;
-    const phone=document.createElement('div');phone.className='phone';phone.textContent=formatPhone(c.celular);
-    info.append(name,phone);
-    const a=document.createElement('a');a.className='wa';a.href=`https://wa.me/${waNumber(c.celular)}`;a.target='_blank';a.rel='noopener';a.setAttribute('aria-label',`Abrir WhatsApp de ${c.nome}`);a.textContent='✆';
-    card.append(av,info,a);frag.append(card);
-  });
-  list.replaceChildren(frag);
+const formatPhone=n=>{const d=digits(n);return d.length===11?`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`:n};
+const waNumber=n=>`55${digits(n)}`;
+const initials=name=>name.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';
+
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function dbGet(key){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function dbSet(key,value){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
+async function dbDelete(key){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
+
+function setNotice(text){notice.textContent=text;notice.hidden=!text}
+function updateStats(){
+  const total=contatos.length.toLocaleString('pt-BR');
+  const encontrados=filtrados.length.toLocaleString('pt-BR');
+  stats.textContent=search.value.trim()?`${encontrados} encontrados de ${total}`:`${total} contatos cadastrados`;
 }
-search.addEventListener('input',()=>{
-  const q=normalize(search.value.trim()); const qd=digits(search.value);
-  if(!q){render(contatos);return}
-  render(contatos.filter(c=>normalize(c.nome).includes(q)||(qd&&digits(c.celular).includes(qd))));
+function makeCard(c){
+  const card=document.createElement('article');card.className='card';
+  const av=document.createElement('div');av.className='avatar';av.textContent=initials(c.nome);
+  const info=document.createElement('div');info.className='info';
+  const name=document.createElement('div');name.className='name';name.textContent=c.nome;
+  const phone=document.createElement('div');phone.className='phone';phone.textContent=formatPhone(c.celular);
+  info.append(name,phone);
+  const a=document.createElement('a');a.className='wa';a.href=`https://wa.me/${waNumber(c.celular)}`;a.target='_blank';a.rel='noopener';a.setAttribute('aria-label',`Abrir WhatsApp de ${c.nome}`);a.textContent='✆';
+  card.append(av,info,a);return card;
+}
+function resetRender(){list.replaceChildren();exibidos=0;renderMore();updateStats()}
+function renderMore(){
+  if(!filtrados.length){if(!exibidos)list.innerHTML='<div class="empty">Nenhum contato encontrado.</div>';return}
+  const next=filtrados.slice(exibidos,exibidos+PAGE_SIZE);
+  if(!next.length)return;
+  if(exibidos===0)list.replaceChildren();
+  const frag=document.createDocumentFragment();next.forEach(c=>frag.append(makeCard(c)));list.append(frag);exibidos+=next.length;
+}
+function applySearch(){
+  const q=normalize(search.value.trim());const qd=digits(search.value);
+  filtrados=!q?contatos:contatos.filter(c=>normalize(c.nome).includes(q)||(qd&&digits(c.celular).includes(qd)));
+  resetRender();
+}
+function normalizeImported(data){
+  let rows=Array.isArray(data)?data:(Array.isArray(data?.contatos)?data.contatos:[]);
+  const result=[];const seen=new Set();
+  for(const row of rows){
+    const nome=Array.isArray(row)?row[0]:row?.nome;
+    const celular=digits(Array.isArray(row)?row[1]:(row?.celular??row?.telefone));
+    if(!nome||celular.length!==11||celular[2]!=='9')continue;
+    const key=`${nome}\u0000${celular}`;if(seen.has(key))continue;seen.add(key);result.push({nome:String(nome).trim(),celular});
+  }
+  return result.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+}
+fileInput.addEventListener('change',async()=>{
+  const file=fileInput.files?.[0];if(!file)return;
+  try{
+    setNotice('Importando contatos...');
+    const data=JSON.parse(await file.text());
+    const parsed=normalizeImported(data);
+    if(!parsed.length)throw new Error('Nenhum celular válido encontrado no arquivo.');
+    contatos=parsed;filtrados=contatos;await dbSet('contatos',contatos);search.value='';resetRender();setNotice(`${contatos.length.toLocaleString('pt-BR')} contatos importados e salvos neste aparelho.`);
+  }catch(err){setNotice(`Não foi possível importar: ${err.message||'arquivo inválido'}`)}finally{fileInput.value=''}
 });
-fetch('contatos.json',{cache:'no-store'}).then(r=>r.json()).then(data=>{contatos=data;render(contatos)}).catch(()=>{stats.textContent='Não foi possível carregar os contatos';list.innerHTML='<div class="empty">Erro ao carregar a base de contatos.</div>'});
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
-let deferredPrompt; const installBtn=document.getElementById('installBtn');
+clearBtn.addEventListener('click',async()=>{if(!confirm('Apagar todos os contatos salvos neste aparelho?'))return;await dbDelete('contatos');contatos=[];filtrados=[];search.value='';resetRender();setNotice('Base local apagada. Importe o arquivo novamente quando quiser.')});
+search.addEventListener('input',applySearch);
+new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))renderMore()},{rootMargin:'500px'}).observe(loadMore);
+
+(async()=>{
+  try{contatos=await dbGet('contatos')||[];filtrados=contatos;resetRender();if(!contatos.length)setNotice('Nenhum contato salvo neste aparelho. Toque em “Importar contatos” e selecione o arquivo de importação.')}catch{stats.textContent='Erro ao abrir armazenamento local';setNotice('Não foi possível acessar o armazenamento deste navegador.')}
+})();
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('sw-reloaded')){sessionStorage.setItem('sw-reloaded','1');location.reload()}})}
+let deferredPrompt;const installBtn=document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;installBtn.style.display='inline-block'});
 installBtn.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installBtn.style.display='none'});
 </script>
