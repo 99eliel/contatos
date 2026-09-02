@@ -1,12 +1,12 @@
 {
-  "name": "Contatos",
-  "short_name": "Contatos",
-  "description": "Lista rápida de contatos com acesso ao WhatsApp.",
+  "name": "Painel Administrativo da Campanha",
+  "short_name": "Campanha",
+  "description": "Painel interno para gestão de contatos.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f7f8",
-  "theme_color": "#0f766e",
+  "background_color": "#f5f7fa",
+  "theme_color": "#075b9e",
   "icons": [
     {
       "src": "icon.svg",
